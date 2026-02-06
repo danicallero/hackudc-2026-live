@@ -1,24 +1,46 @@
-import type { Route } from "./+types/tv";
-import { TvLayout } from "~/components/tv";
+import { readItems, readSingleton } from '@directus/sdk'
+import directus from '~/lib/directus'
+import type { Route } from './+types/tv'
+import { Loading } from '~/components/Loading'
 
-export function meta({ }: Route.MetaArgs) {
-  return [
-    { title: "HackUDC Live TV" },
-    {
-      name: "description",
-      content: "Live TV feed from HackUDC 2026",
-    },
-    { property: "og:title", content: "HackUDC Live TV" },
-    { property: "og:type", content: "website" },
-    { property: "og:url", content: "https://live.hackudc.gpul.org/tv" },
-    { property: "og:image", content: "https://live.hackudc.gpul.org/images/logo.png" },
-    { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: "HackUDC Live TV" },
-    { name: "twitter:description", content: "Live TV feed from HackUDC 2026" },
-    { name: "twitter:image", content: "https://live.hackudc.gpul.org/images/logo.png" },
-  ];
+export async function clientLoader() {
+  const sponsors = await directus.request(readItems('sponsors'))
+  const schedule = await directus.request(readItems('schedule'))
+  const hackingtime = await directus.request(readSingleton('hackingtime'))
+  const wifi = await directus.request(readSingleton('wifi'))
+
+  return { sponsors, schedule, hackingtime, wifi }
 }
 
-export default function Tv() {
-  return <TvLayout />;
+export function HydrateFallback() {
+  return <Loading />
+}
+
+export default function TV({ loaderData }: Route.ComponentProps) {
+  const { sponsors, schedule, hackingtime, wifi } = loaderData
+
+  return (
+    <div className="text-white">
+      <h1>Hacking Time</h1>
+      <p>
+        {hackingtime.start} - {hackingtime.end}
+      </p>
+      <h1>WiFi</h1>
+      <p>
+        {wifi.ssid} - {wifi.password}
+      </p>
+      <h1>Sponsors</h1>
+      <ul>
+        {sponsors.map((sponsor) => (
+          <li key={sponsor.id}>{sponsor.name}</li>
+        ))}
+      </ul>
+      <h1>Schedule</h1>
+      <ul>
+        {schedule.map((item) => (
+          <li key={item.id}>{item.title}</li>
+        ))}
+      </ul>
+    </div>
+  )
 }
