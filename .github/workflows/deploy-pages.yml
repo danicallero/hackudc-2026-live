@@ -32,8 +32,7 @@ jobs:
 
       - name: Build for GitHub Pages
         env:
-          BASE_PATH: /
-          GITHUB_PAGES: true
+          VITE_DIRECTUS_URL: ${{ vars.VITE_DIRECTUS_URL }}
         run: pnpm run build
 
       - name: Setup Pages
