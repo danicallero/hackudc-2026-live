@@ -228,11 +228,11 @@ export default function Tv() {
   const activeIndex = useMemo(() => getActiveScheduleIndex(timedSchedule, now), [timedSchedule, now])
 
   const mainSponsor = useMemo(() => data.sponsors.find((s) => s.level === 'root') ?? null, [data.sponsors])
-  const secondarySponsors = useMemo(() => data.sponsors.filter((s) => s.level === 'admin'), [data.sponsors])
-  const thirdTierSponsors = useMemo(() => data.sponsors.filter((s) => s.level === 'user'), [data.sponsors])
-  const collaboratorSponsors = useMemo(() => data.sponsors.filter((s) => s.level === 'collaborator'), [data.sponsors])
-
-  const organizer = useMemo(() => collaboratorSponsors[0] ?? null, [collaboratorSponsors])
+  const adminSponsors = useMemo(() => data.sponsors.filter((s) => s.level === 'admin'), [data.sponsors])
+  const userAndCollaboratorSponsors = useMemo(
+    () => data.sponsors.filter((s) => s.level === 'user' || s.level === 'collaborator'),
+    [data.sponsors]
+  )
 
   return (
     <div className="h-screen overflow-hidden text-neutral-50 font-sans flex">
@@ -246,9 +246,8 @@ export default function Tv() {
         <div className="flex-1 min-h-0">
           <SponsorsPanel
             mainSponsor={mainSponsor}
-            secondarySponsors={secondarySponsors}
-            thirdTierSponsors={thirdTierSponsors}
-            collaboratorSponsors={collaboratorSponsors}
+            adminSponsors={adminSponsors}
+            userAndCollaboratorSponsors={userAndCollaboratorSponsors}
           />
         </div>
         <div className="flex flex-col gap-4">
@@ -489,78 +488,48 @@ function ScheduleDescription({ markdown, className }: ScheduleDescriptionProps) 
 
 interface SponsorsPanelProps {
   mainSponsor: Sponsor | null
-  secondarySponsors: Sponsor[]
-  thirdTierSponsors: Sponsor[]
-  collaboratorSponsors: Sponsor[]
+  adminSponsors: Sponsor[]
+  userAndCollaboratorSponsors: Sponsor[]
 }
 
-function SponsorsPanel({
-  mainSponsor,
-  secondarySponsors,
-  thirdTierSponsors,
-  collaboratorSponsors
-}: SponsorsPanelProps) {
+function SponsorsPanel({ mainSponsor, adminSponsors, userAndCollaboratorSponsors }: SponsorsPanelProps) {
   return (
     <section className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto">
       <div className="flex flex-col gap-4">
         <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-500">Sponsors</h2>
 
         <div className="flex flex-col gap-4">
-          <div className="h-28 rounded-lg bg-black border border-neutral-900 flex items-center justify-center">
-            {mainSponsor ? (
+          {mainSponsor ? (
+            <div className="h-28 rounded-lg bg-black border border-neutral-900 flex items-center justify-center">
               <SponsorLogo sponsor={mainSponsor} />
-            ) : (
-              <span className="text-xs text-neutral-600">Main sponsor</span>
-            )}
-          </div>
+            </div>
+          ) : null}
 
-          <div className="grid grid-cols-2 gap-3">
-            {secondarySponsors.length ? (
-              secondarySponsors.map((sponsor) => (
+          {adminSponsors.length ? (
+            <div className="grid grid-cols-2 gap-3">
+              {adminSponsors.map((sponsor) => (
                 <div
                   key={sponsor.id}
                   className="h-16 rounded bg-black border border-neutral-900 flex items-center justify-center"
                 >
                   <SponsorLogo sponsor={sponsor} />
                 </div>
-              ))
-            ) : (
-              <>
-                <PlaceholderBox label="Sponsor" />
-                <PlaceholderBox label="Sponsor" />
-              </>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : null}
 
-          <div className="h-12 rounded bg-black border border-neutral-900 flex items-center justify-center">
-            {thirdTierSponsors.length
-              ? thirdTierSponsors.map((sponsor) => (
-                  <div key={sponsor.id} className="mx-3 h-8 flex items-center">
-                    <SponsorLogo sponsor={sponsor} />
-                  </div>
-                ))
-              : null}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {collaboratorSponsors.length ? (
-              collaboratorSponsors.map((sponsor) => (
+          {userAndCollaboratorSponsors.length ? (
+            <div className="grid grid-cols-3 gap-3">
+              {userAndCollaboratorSponsors.map((sponsor) => (
                 <div
                   key={sponsor.id}
                   className="h-14 rounded bg-black border border-neutral-900 flex items-center justify-center"
                 >
                   <SponsorLogo sponsor={sponsor} />
                 </div>
-              ))
-            ) : (
-              <>
-                <PlaceholderBox label="Collaborator" />
-                <PlaceholderBox label="Collaborator" />
-                <PlaceholderBox label="Collaborator" />
-                <PlaceholderBox label="Collaborator" />
-              </>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
@@ -593,29 +562,22 @@ interface SponsorLogoProps {
 
 function SponsorLogo({ sponsor }: SponsorLogoProps) {
   const src = getAssetUrl(sponsor.logo)
-  const image = <img src={src} alt={sponsor.name} className="max-h-full max-w-full object-contain" />
+  const image = <img src={src} alt={sponsor.name} className="h-full w-full object-contain" />
 
   if (sponsor.link) {
     return (
-      <a href={sponsor.link} target="_blank" rel="noreferrer" className="inline-flex max-h-full max-w-full">
+      <a
+        href={sponsor.link}
+        target="_blank"
+        rel="noreferrer"
+        className="flex h-full w-full items-center justify-center"
+      >
         {image}
       </a>
     )
   }
 
   return image
-}
-
-interface PlaceholderBoxProps {
-  label: string
-}
-
-function PlaceholderBox({ label }: PlaceholderBoxProps) {
-  return (
-    <div className="h-14 rounded bg-black border border-neutral-900 flex items-center justify-center">
-      <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-600">{label}</span>
-    </div>
-  )
 }
 
 interface WifiAndOrganizerProps {
