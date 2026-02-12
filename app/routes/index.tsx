@@ -51,9 +51,12 @@ function Header({ now }: { now: Date | null }) {
 }
 
 function CountdownSection({ hacking, now }: { hacking: HackingTime | null; now: Date | null }) {
+  const hackingStarted = hacking && now && new Date(hacking.start) <= now
+  const label = hackingStarted ? 'HACKING ENDS IN' : 'HACKING STARTS IN'
+
   return (
     <section className="flex flex-col items-center justify-center gap-1 py-4 md:py-6">
-      <p className="text-[10px] md:text-xs font-semibold text-slate-500 tracking-[0.2em] uppercase">HACKING ENDS IN</p>
+      <p className="text-[10px] md:text-xs font-semibold text-slate-500 tracking-[0.2em] uppercase">{label}</p>
       <p className="text-2xl md:text-4xl font-mono text-slate-200 tabular-nums">{formatCountdown(hacking, now)}</p>
     </section>
   )

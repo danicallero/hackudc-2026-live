@@ -58,6 +58,16 @@ export interface TimedScheduleItem extends ScheduleItem {
 }
 
 const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL ?? ''
+const DISPLAY_TIME_ZONE = 'Europe/Madrid' // CET (GMT+1)
+
+// Directus dates are stored as UTC but represent local Madrid time
+// We need to subtract 1 hour to convert to actual UTC
+function adjustDirectusDate(dateString: string): Date {
+  const date = new Date(dateString)
+  // Subtract 1 hour to account for the timezone offset
+  date.setHours(date.getHours() - 1)
+  return date
+}
 
 export function getAssetUrl(id?: string | null): string {
   if (!id) return ''
@@ -85,10 +95,11 @@ export function useNow(tickMs: number): Date | null {
 
 export function formatClockTime(date: Date | null): string {
   if (!date) return '--:--'
-  return date.toLocaleTimeString(undefined, {
+  return date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: DISPLAY_TIME_ZONE
   })
 }
 
@@ -102,14 +113,35 @@ export function formatCountdown(hacking: HackingTime | null, now: Date | null): 
     return '--:--:--'
   }
 
+  // If hacking hasn't started yet
   if (now < start) {
-    return '36:00:00'
+    const diffMs = start.getTime() - now.getTime()
+    const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
+    const days = Math.floor(totalSeconds / 86400)
+
+    // Show days if more than 1 day
+    if (days > 1) {
+      return `${days} days`
+    }
+
+    // Otherwise show hours:minutes:seconds
+    const totalHours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    const hh = String(totalHours).padStart(2, '0')
+    const mm = String(minutes).padStart(2, '0')
+    const ss = String(seconds).padStart(2, '0')
+
+    return `${hh}:${mm}:${ss}`
   }
 
+  // If hacking has ended
   if (now >= end) {
-    return '00:00:00'
+    return '0'
   }
 
+  // Hacking is in progress, count down to end
   const diffMs = end.getTime() - now.getTime()
   const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
   const hours = Math.floor(totalSeconds / 3600)
@@ -126,8 +158,8 @@ export function formatCountdown(hacking: HackingTime | null, now: Date | null): 
 export function buildTimedSchedule(schedule: ScheduleItem[], now: Date | null): TimedScheduleItem[] {
   return schedule
     .map((item) => {
-      const startDate = new Date(item.start)
-      const endDate = new Date(item.end)
+      const startDate = adjustDirectusDate(item.start)
+      const endDate = adjustDirectusDate(item.end)
       let status: ScheduleItemStatus = 'upcoming'
 
       if (now) {

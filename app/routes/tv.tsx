@@ -124,16 +124,35 @@ function formatCountdown(hacking: HackingTime | null, now: Date | null) {
     return '--:--:--'
   }
 
+  // If hacking hasn't started yet
   if (now < start) {
-    // Before hacking starts we always display 36 hours as per spec
-    return '36:00:00'
+    const diffMs = start.getTime() - now.getTime()
+    const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
+    const days = Math.floor(totalSeconds / 86400)
+
+    // Show days if more than 1 day
+    if (days > 1) {
+      return `${days} days`
+    }
+
+    // Otherwise show hours:minutes:seconds
+    const totalHours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    const hh = String(totalHours).padStart(2, '0')
+    const mm = String(minutes).padStart(2, '0')
+    const ss = String(seconds).padStart(2, '0')
+
+    return `${hh}:${mm}:${ss}`
   }
 
+  // If hacking has ended
   if (now >= end) {
-    // Once it reaches zero, stay at zero
-    return '00:00:00'
+    return '0'
   }
 
+  // Hacking is in progress, count down to end
   const diffMs = end.getTime() - now.getTime()
   const totalSeconds = Math.max(0, Math.floor(diffMs / 1000))
   const hours = Math.floor(totalSeconds / 3600)
@@ -288,9 +307,12 @@ interface HackingCountdownProps {
 }
 
 function HackingCountdown({ hacking, now }: HackingCountdownProps) {
+  const hackingStarted = hacking && now && new Date(hacking.start) <= now
+  const label = hackingStarted ? 'HACKING ENDS IN' : 'HACKING STARTS IN'
+
   return (
     <section className="flex flex-col items-center justify-center gap-3 h-44">
-      <p className="text-base font-semibold text-neutral-400 tracking-[0.35em] uppercase">HACKING ENDS IN</p>
+      <p className="text-base font-semibold text-neutral-400 tracking-[0.35em] uppercase">{label}</p>
       <p className="text-8xl md:text-9xl font-mono text-neutral-50 tabular-nums">{formatCountdown(hacking, now)}</p>
     </section>
   )
